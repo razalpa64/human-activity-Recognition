@@ -15,10 +15,15 @@ const ACTIVITIES = [
 
 let isSensorActive = false;
 let sensorBuffer = [];
-const BUFFER_SIZE = 50; // Optimized window size for pocket motion tracking
+const BUFFER_SIZE = 128;          // UCI standard window: 2.56 s @ 50 Hz
+const MIN_SAMPLES = 64;           // backend accepts >= 64 samples
+const SAMPLE_INTERVAL_MS = 20;    // throttle sampling to ~50 Hz
+const PREDICTION_INTERVAL = 2000; // predict every 2 s on the rolling window
 let lastPredictionTime = 0;
-const PREDICTION_INTERVAL = 1000; // 1s cadence for high reliability
+let lastSampleTime = 0;
 let predictionHistory = [];
+let simulationTimer = null;
+let simulationTick = 0;
 
 // DOM Elements
 const systemStatusDot = document.getElementById("system-status-dot");
@@ -141,7 +146,7 @@ async function fetchModelInfo() {
     }
 }
 
-// Motion Sensors Handling (Pocket Optimized)
+// Motion Sensors Handling (UCI-faithful: total acceleration in g, gyro in rad/s)
 async function toggleMotionSensors() {
     if (isSensorActive) {
         stopSensors();
@@ -151,56 +156,80 @@ async function toggleMotionSensors() {
 }
 
 async function startSensors() {
-    if (typeof window.DeviceMotionEvent === "undefined") {
-        alert("DeviceMotionEvent is not supported on this device/browser.");
-        return;
-    }
-
-    if (typeof DeviceMotionEvent.requestPermission === "function") {
-        try {
-            const permissionState = await DeviceMotionEvent.requestPermission();
-            if (permissionState !== "granted") {
-                alert("Motion sensor permission denied.");
+    const hasDeviceMotion = typeof window.DeviceMotionEvent !== "undefined";
+    if (hasDeviceMotion) {
+        if (typeof DeviceMotionEvent.requestPermission === "function") {
+            try {
+                const permissionState = await DeviceMotionEvent.requestPermission();
+                if (permissionState !== "granted") {
+                    startSimulation();
+                    return;
+                }
+            } catch (error) {
+                console.error("Permission error:", error);
+                startSimulation();
                 return;
             }
-        } catch (error) {
-            console.error("Permission error:", error);
-            alert("Failed to obtain motion permission.");
-            return;
         }
+        window.addEventListener("devicemotion", handleDeviceMotion, true);
+        isSensorActive = true;
+        setSensorUI("POCKET SENSORS ACTIVE", true, "var(--danger)");
+    } else {
+        // Desktop browsers have no motion sensors -> activity simulation mode
+        startSimulation();
     }
-
-    window.addEventListener("devicemotion", handleDeviceMotion, true);
-    isSensorActive = true;
-    btnToggleSensors.textContent = "DISABLE MOTION SENSORS";
-    btnToggleSensors.style.background = "var(--danger)";
-    sensorStatusBadge.textContent = "POCKET SENSORS ACTIVE";
-    sensorStatusBadge.style.color = "var(--accent-green)";
-    sensorStatusBadge.style.borderColor = "rgba(16, 185, 129, 0.3)";
 }
 
 function stopSensors() {
+    if (simulationTimer !== null) {
+        clearInterval(simulationTimer);
+        simulationTimer = null;
+    }
     window.removeEventListener("devicemotion", handleDeviceMotion, true);
     isSensorActive = false;
-    btnToggleSensors.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path></svg> ENABLE MOTION SENSORS`;
-    btnToggleSensors.style.background = "";
-    sensorStatusBadge.textContent = "SENSORS IDLE";
-    sensorStatusBadge.style.color = "";
-    sensorStatusBadge.style.borderColor = "";
+    sensorBuffer = [];
+    setSensorUI("SENSORS IDLE", false, "");
+    document.getElementById("sim-controls").style.display = "none";
+}
+
+function setSensorUI(badgeText, active, buttonColor) {
+    sensorStatusBadge.textContent = badgeText;
+    sensorStatusBadge.style.color = active ? "var(--accent-green)" : "";
+    sensorStatusBadge.style.borderColor = active ? "rgba(16, 185, 129, 0.3)" : "";
+    btnToggleSensors.innerHTML = active
+        ? `DISABLE MOTION SENSORS`
+        : `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path></svg> ENABLE MOTION SENSORS`;
+    btnToggleSensors.style.background = buttonColor;
 }
 
 function handleDeviceMotion(event) {
-    const acc = event.acceleration || event.accelerationIncludingGravity || { x: 0, y: 0, z: 0 };
+    const now = Date.now();
+    if (now - lastSampleTime < SAMPLE_INTERVAL_MS) return;
+    lastSampleTime = now;
+
+    // The UCI pipeline models TOTAL acceleration (gravity + body motion).
+    // event.acceleration has gravity REMOVED, so prefer accelerationIncludingGravity.
+    const acc = event.accelerationIncludingGravity || event.acceleration || { x: 0, y: 0, z: 0 };
     const gyro = event.rotationRate || { alpha: 0, beta: 0, gamma: 0 };
 
-    const ax = acc.x || 0;
-    const ay = acc.y || 0;
-    const az = acc.z || 0;
-    
-    const gx = (gyro.alpha || 0) * (Math.PI / 180);
-    const gy = (gyro.beta || 0) * (Math.PI / 180);
-    const gz = (gyro.gamma || 0) * (Math.PI / 180);
+    // Devices report m/s^2 -> convert to g (UCI convention); gyro deg/s -> rad/s.
+    const G = 9.80665;
+    const ax = clampValue((acc.x || 0) / G, 6);
+    const ay = clampValue((acc.y || 0) / G, 6);
+    const az = clampValue((acc.z || 0) / G, 6);
+    const gx = clampValue((gyro.alpha || 0) * (Math.PI / 180), 35);
+    const gy = clampValue((gyro.beta || 0) * (Math.PI / 180), 35);
+    const gz = clampValue((gyro.gamma || 0) * (Math.PI / 180), 35);
 
+    pushSample(ax, ay, az, gx, gy, gz);
+}
+
+function clampValue(v, limit) {
+    if (!isFinite(v)) return 0;
+    return Math.max(-limit, Math.min(limit, v));
+}
+
+function pushSample(ax, ay, az, gx, gy, gz) {
     accelXEl.textContent = ax.toFixed(2);
     accelYEl.textContent = ay.toFixed(2);
     accelZEl.textContent = az.toFixed(2);
@@ -219,10 +248,64 @@ function handleDeviceMotion(event) {
     }
 
     const now = Date.now();
-    if (sensorBuffer.length >= BUFFER_SIZE && (now - lastPredictionTime > PREDICTION_INTERVAL)) {
+    if (sensorBuffer.length >= MIN_SAMPLES && (now - lastPredictionTime > PREDICTION_INTERVAL)) {
         lastPredictionTime = now;
         sendSensorWindowForPrediction([...sensorBuffer]);
     }
+}
+
+// ---------------------------------------------------------------------------
+// Desktop simulation mode: activity-coherent inertial patterns so the full
+// pipeline (window -> 561 UCI features -> model) can be exercised anywhere.
+// ---------------------------------------------------------------------------
+const SIM_GRAVITY = {
+    WALKING: [0.0, 0.15, 0.99],
+    WALKING_UPSTAIRS: [0.0, 0.55, 0.83],
+    WALKING_DOWNSTAIRS: [0.0, -0.5, 0.86],
+    SITTING: [0.1, 0.95, 0.3],
+    STANDING: [0.05, 0.1, 0.99],
+    LAYING: [0.98, 0.1, 0.15]
+};
+const SIM_DYNAMIC = {
+    WALKING: { freq: 1.8, amp: 0.16, tilt: 0.0 },
+    WALKING_UPSTAIRS: { freq: 1.4, amp: 0.26, tilt: 0.25 },
+    WALKING_DOWNSTAIRS: { freq: 1.7, amp: 0.22, tilt: -0.25 }
+};
+
+function startSimulation() {
+    simulationTick = 0;
+    document.getElementById("sim-controls").style.display = "block";
+    isSensorActive = true;
+    setSensorUI("SIMULATION MODE ACTIVE", true, "var(--danger)");
+    simulationTimer = setInterval(simulationSample, SAMPLE_INTERVAL_MS);
+}
+
+function simulationSample() {
+    const activity = document.getElementById("sim-activity").value;
+    simulationTick += 1;
+    const t = simulationTick / 50; // seconds @ 50 Hz
+
+    const [gvx, gvy, gvz] = SIM_GRAVITY[activity] || SIM_GRAVITY.STANDING;
+    const dyn = SIM_DYNAMIC[activity];
+    let ax = gvx, ay = gvy, az = gvz, gx = 0, gy = 0, gz = 0;
+
+    if (dyn) {
+        const tilt = dyn.tilt * Math.sin(2 * Math.PI * 0.35 * t);
+        const swing = Math.sin(2 * Math.PI * dyn.freq * t);
+        const swing2 = Math.sin(2 * Math.PI * dyn.freq * 2 * t);
+        ax = dyn.amp * swing + tilt;
+        ay = gvy + 0.6 * dyn.amp * swing2 + 0.5 * tilt;
+        az = gvz + dyn.amp * Math.sin(2 * Math.PI * dyn.freq * t + 1.0) + tilt;
+        gx = 0.7 * swing;
+        gy = 0.5 * Math.cos(2 * Math.PI * dyn.freq * t);
+        gz = 0.4 * Math.sin(2 * Math.PI * dyn.freq * t + 0.7);
+    }
+
+    const noise = () => (Math.random() - 0.5) * 0.02;
+    pushSample(
+        clampValue(ax + noise(), 6), clampValue(ay + noise(), 6), clampValue(az + noise(), 6),
+        clampValue(gx + noise(), 35), clampValue(gy + noise(), 35), clampValue(gz + noise(), 35)
+    );
 }
 
 async function sendSensorWindowForPrediction(windowData) {

@@ -129,7 +129,7 @@ async def get_dataset_sample(index: int):
 
 @app.get("/dataset/total", tags=["Dataset / Demo"])
 async def get_dataset_total_samples():
-    total = len(predictor.X_test_cache) if predictor.X_test_cache is not None else 2947
+    total = predictor.total_samples()
     return {"total_test_samples": total}
 
 # Mount frontend static files

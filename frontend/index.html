@@ -82,18 +82,18 @@
                 </div>
                 <div class="sensors-grid">
                     <div class="sensor-box">
-                        <h4>Accelerometer (m/s²)</h4>
+                        <h4>Accelerometer (g)</h4>
                         <div class="axis-row">
                             <span class="axis-label">X</span>
                             <span id="accel-x" class="axis-val">0.00</span>
                         </div>
                         <div class="axis-row">
                             <span class="axis-label">Y</span>
-                            <span id="accel-y" class="axis-val">9.81</span>
+                            <span id="accel-y" class="axis-val">0.00</span>
                         </div>
                         <div class="axis-row">
                             <span class="axis-label">Z</span>
-                            <span id="accel-z" class="axis-val">0.00</span>
+                            <span id="accel-z" class="axis-val">1.00</span>
                         </div>
                     </div>
                     <div class="sensor-box">
@@ -111,6 +111,17 @@
                             <span id="gyro-z" class="axis-val">0.00</span>
                         </div>
                     </div>
+                </div>
+                <div id="sim-controls" style="display:none; margin-top: 12px;">
+                    <label class="form-label" for="sim-activity">Desktop Simulation &mdash; Simulated Activity</label>
+                    <select id="sim-activity" class="form-control">
+                        <option value="WALKING">1. Walking</option>
+                        <option value="WALKING_UPSTAIRS">2. Walking Upstairs</option>
+                        <option value="WALKING_DOWNSTAIRS">3. Walking Downstairs</option>
+                        <option value="SITTING">4. Sitting</option>
+                        <option value="STANDING" selected>5. Standing</option>
+                        <option value="LAYING">6. Laying</option>
+                    </select>
                 </div>
             </div>
 

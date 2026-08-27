@@ -41,6 +41,15 @@ pip install -r backend/requirements.txt
 python ml/train.py
 ```
 
+The model is trained on the **raw UCI HAR Inertial Signals** (128-sample windows @ 50 Hz). The
+feature pipeline faithfully reconstructs the official 561-dimensional UCI feature space:
+median filter, 0.3 Hz Butterworth gravity/body separation, jerk derivatives, Euclidean
+magnitudes, FFT, and every statistic enumerated in `features.txt` (mean, std, mad, max, min,
+sma, energy, iqr, entropy, Burg arCoeff, correlation, maxInds, meanFreq, skewness, kurtosis,
+bandsEnergy, angles). Live motion-sensor windows go through the **exact same pipeline** at
+inference time, with phone units auto-normalized (m/s² to g, deg/s to rad/s).
+Achieved test accuracy: **~92.9%**.
+
 ### 2. Start Backend & Static Frontend
 ```bash
 uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
