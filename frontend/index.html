@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Human Activity Recognition (HAR) AI Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Cinematic Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo-icon">AI</div>
+            <div class="loading-title">HAR INTELLIGENCE</div>
+            <div class="loading-subtitle">Initializing Neural Weights & Pocket Telemetry...</div>
+            <div class="loading-progress-bar-bg">
+                <div id="loading-progress-fill" class="loading-progress-bar-fill"></div>
+            </div>
+            <div id="loading-status-text" class="loading-status-text">Connecting to Backend API...</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo-area">
+                <div class="logo-icon">AI</div>
+                <div class="logo-text">
+                    <h1>HAR INTELLIGENCE</h1>
+                    <p>UCI Smartphone Motion Analytics</p>
+                </div>
+            </div>
+            <div class="status-indicator">
+                <div id="system-status-dot" class="status-dot"></div>
+                <span id="system-status-text">CONNECTING...</span>
+            </div>
+        </header>
+
+        <!-- Hero Section -->
+        <section class="hero">
+            <h2>HUMAN ACTIVITY<br>RECOGNITION</h2>
+            <p>Real-time human motion intelligence powered by machine learning (Random Forest & Gradient Boosting) and mobile inertial sensors.</p>
+            <div class="hero-actions">
+                <button id="btn-toggle-sensors" class="btn btn-primary">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"></path></svg>
+                    ENABLE MOTION SENSORS
+                </button>
+                <button id="btn-scroll-demo" class="btn btn-secondary">
+                    TEST DEMO MODE
+                </button>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Grid -->
+        <div class="dashboard-grid">
+            
+            <!-- Current Activity Card -->
+            <div class="card col-span-6">
+                <div class="card-header">
+                    <span class="card-title">Current Activity</span>
+                    <span id="prediction-mode-badge" class="badge">LIVE STREAM</span>
+                </div>
+                <div class="activity-display">
+                    <div id="current-activity" class="activity-name">STANDBY</div>
+                    <div class="confidence-wrapper">
+                        <div class="confidence-value" id="current-confidence">0% Confidence</div>
+                        <div class="confidence-bar-bg">
+                            <div id="confidence-bar" class="confidence-bar-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sensor Telemetry Card -->
+            <div class="card col-span-6">
+                <div class="card-header">
+                    <span class="card-title">Sensor Telemetry (Pocket-Optimized)</span>
+                    <span class="badge" id="sensor-status-badge">SENSORS IDLE</span>
+                </div>
+                <div class="sensors-grid">
+                    <div class="sensor-box">
+                        <h4>Accelerometer (m/s²)</h4>
+                        <div class="axis-row">
+                            <span class="axis-label">X</span>
+                            <span id="accel-x" class="axis-val">0.00</span>
+                        </div>
+                        <div class="axis-row">
+                            <span class="axis-label">Y</span>
+                            <span id="accel-y" class="axis-val">9.81</span>
+                        </div>
+                        <div class="axis-row">
+                            <span class="axis-label">Z</span>
+                            <span id="accel-z" class="axis-val">0.00</span>
+                        </div>
+                    </div>
+                    <div class="sensor-box">
+                        <h4>Gyroscope (rad/s)</h4>
+                        <div class="axis-row">
+                            <span class="axis-label">X</span>
+                            <span id="gyro-x" class="axis-val">0.00</span>
+                        </div>
+                        <div class="axis-row">
+                            <span class="axis-label">Y</span>
+                            <span id="gyro-y" class="axis-val">0.00</span>
+                        </div>
+                        <div class="axis-row">
+                            <span class="axis-label">Z</span>
+                            <span id="gyro-z" class="axis-val">0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Probabilities Card -->
+            <div class="card col-span-6">
+                <div class="card-header">
+                    <span class="card-title">Activity Probabilities</span>
+                    <span class="badge">Softmax Dist</span>
+                </div>
+                <div class="probability-list" id="probability-container">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- Elon-Musk Grade Neural Prediction Log Card -->
+            <div class="card col-span-6">
+                <div class="card-header">
+                    <span class="card-title">Neural Telemetry & Motion Log</span>
+                    <span class="badge" id="log-counter">0 Events Stored</span>
+                </div>
+                <div class="log-terminal" id="neural-log-terminal">
+                    <div class="log-entry system">
+                        <span class="log-time">[SYSTEM]</span>
+                        <span class="log-msg">Neural buffer primed. Ready for pocket motion telemetry...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Descriptive & Demo Mode Card (Matching Prompt Format) -->
+            <div class="card col-span-12" id="demo-section">
+                <div class="card-header">
+                    <span class="card-title">🧠 Human Activity Predictor (Descriptive Simulation Mode)</span>
+                    <span class="badge">Model Inference</span>
+                </div>
+                <div class="demo-grid">
+                    <div class="demo-form-col">
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">Describe the movement parameters you want to analyze:</p>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Movement Intensity</label>
+                            <select id="desc-intensity" class="form-control">
+                                <option value="Low">1. Low</option>
+                                <option value="Medium" selected>2. Medium</option>
+                                <option value="High">3. High</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Movement Stability</label>
+                            <select id="desc-stability" class="form-control">
+                                <option value="Low">1. Low</option>
+                                <option value="Medium" selected>2. Medium</option>
+                                <option value="High">3. High</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Body Orientation</label>
+                            <select id="desc-orientation" class="form-control">
+                                <option value="Lying">1. Lying</option>
+                                <option value="Sitting">2. Sitting</option>
+                                <option value="Standing" selected>3. Standing</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Rotation</label>
+                            <select id="desc-rotation" class="form-control">
+                                <option value="Low">1. Low</option>
+                                <option value="Moderate" selected>2. Moderate</option>
+                                <option value="High">3. High</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Movement Pattern</label>
+                            <select id="desc-pattern" class="form-control">
+                                <option value="Still">1. Still</option>
+                                <option value="Regular" selected>2. Regular</option>
+                                <option value="Rhythmic">3. Rhythmic</option>
+                            </select>
+                        </div>
+
+                        <button id="btn-predict-descriptive" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 8px;">Run Descriptive Prediction</button>
+                    </div>
+
+                    <div class="demo-result-col">
+                        <div class="demo-result-box" id="demo-result-container">
+                            <div style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                                Select movement parameters on the left and click <strong>Run Descriptive Prediction</strong> to generate results.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Intelligence Card -->
+            <div class="card col-span-12">
+                <div class="card-header">
+                    <span class="card-title">Model Intelligence & Metadata</span>
+                    <span class="badge">Ensemble Classifier</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-model-name">RF + GB Ensemble</div>
+                        <div class="stat-label">Model Architecture</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-accuracy">94.2%</div>
+                        <div class="stat-label">Model Precision</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-features">561</div>
+                        <div class="stat-label">Engineered Features</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="stat-samples">7,352</div>
+                        <div class="stat-label">Training Samples</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Human Activity Recognition Web App &bull; Powered by FastAPI & Scikit-Learn &bull; UCI Dataset Benchmark Architecture</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

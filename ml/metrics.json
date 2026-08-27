@@ -1,0 +1,69 @@
+{
+    "dataset_source": "synthetic",
+    "accuracy": 0.168306752629793,
+    "precision": 0.1682593738523921,
+    "recall": 0.168306752629793,
+    "f1_score": 0.16751998408275387,
+    "classification_report": {
+        "WALKING": {
+            "precision": 0.17597292724196278,
+            "recall": 0.2035225048923679,
+            "f1-score": 0.18874773139745918,
+            "support": 511.0
+        },
+        "WALKING_UPSTAIRS": {
+            "precision": 0.18110236220472442,
+            "recall": 0.1803921568627451,
+            "f1-score": 0.1807465618860511,
+            "support": 510.0
+        },
+        "WALKING_DOWNSTAIRS": {
+            "precision": 0.16341030195381884,
+            "recall": 0.18661257606490872,
+            "f1-score": 0.17424242424242425,
+            "support": 493.0
+        },
+        "SITTING": {
+            "precision": 0.1515837104072398,
+            "recall": 0.13137254901960785,
+            "f1-score": 0.1407563025210084,
+            "support": 510.0
+        },
+        "STANDING": {
+            "precision": 0.15732758620689655,
+            "recall": 0.16294642857142858,
+            "f1-score": 0.1600877192982456,
+            "support": 448.0
+        },
+        "LAYING": {
+            "precision": 0.17941952506596306,
+            "recall": 0.1431578947368421,
+            "f1-score": 0.1592505854800937,
+            "support": 475.0
+        },
+        "accuracy": 0.168306752629793,
+        "macro avg": {
+            "precision": 0.16813606884676757,
+            "recall": 0.16800068502465004,
+            "f1-score": 0.1673052208042137,
+            "support": 2947.0
+        },
+        "weighted avg": {
+            "precision": 0.1682593738523921,
+            "recall": 0.168306752629793,
+            "f1-score": 0.16751998408275387,
+            "support": 2947.0
+        }
+    },
+    "training_samples": 7352,
+    "testing_samples": 2947,
+    "features_count": 561,
+    "activities": [
+        "WALKING",
+        "WALKING_UPSTAIRS",
+        "WALKING_DOWNSTAIRS",
+        "SITTING",
+        "STANDING",
+        "LAYING"
+    ]
+}

@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.env
+.idea/
+.vscode/
+.DS_Store
+.cache/
+
+# Archives
+har_project.zip
+
+# Model artifacts (optional to commit, but good to include for zero-setup deployments)
+# ml/model.pkl
+# ml/scaler.pkl
+# ml/label_encoder.pkl
